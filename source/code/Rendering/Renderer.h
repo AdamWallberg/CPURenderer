@@ -4,6 +4,7 @@
 #include "Geometry.h"
 
 class Shader;
+class Camera;
 
 class Renderer
 {
@@ -35,7 +36,5 @@ private:
 	Shader* quadShader_;
 	uint screenQuad_;
 
-	float near_;
-	float far_;
-	float fov_;
+	Camera* camera_;
 };

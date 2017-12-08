@@ -82,6 +82,13 @@ struct VertexTriangle
 		return r;
 	}
 
+	glm::vec3 normal()
+	{
+		return glm::cross(
+			glm::normalize(glm::vec3(v[1].p - v[0].p)),
+			glm::normalize(glm::vec3(v[2].p - v[0].p)));
+	}
+
 private:
 	float s(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3)
 	{

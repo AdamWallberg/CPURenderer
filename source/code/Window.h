@@ -22,6 +22,7 @@ public:
 
 	int getWidth() const { return width_; }
 	int getHeight() const { return height_; }
+	GLFWwindow* getWindow() const { return window_; }
 
 	void setTitle(const std::string& title);
 private:

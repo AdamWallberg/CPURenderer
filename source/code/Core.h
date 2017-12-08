@@ -2,6 +2,7 @@
 
 #include <assert.h>
 #include "Types.h"
+#include "Math.h"
 
 #ifdef DEBUG
 #define _CRTDBG_MAP_ALLOC

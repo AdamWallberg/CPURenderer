@@ -3,31 +3,29 @@
 #include "GL.h"
 #include "Shader.h"
 #include "Engine.h"
-#define  GLM_ENABLE_EXPERIMENTAL
-#include <glm/gtx/transform.hpp>
+#include "Camera.h"
 
 Renderer::Renderer()
 {
-	width_ = ENGINE->window_->getWidth() / 3;
+	width_ = ENGINE->window_->getWidth() / 5;
 	//width_ = 64;
-	height_ = ENGINE->window_->getHeight() / 3;
+	height_ = ENGINE->window_->getHeight() / 5;
 	//height_ = width_;
 	numPixels_ = width_ * height_;
 	pixels_ = newp uint[width_ * height_];
 	zbuffer_ = newp float[width_ * height_];
 
-	near_ = 0.1f;
-	far_ = 1000.0f;
-	fov_ = 60.0f;
-
 	createTexture();
 	setupQuad();
 
 	quadShader_ = newp Shader("quad");
+
+	camera_ = newp Camera(60.0f, (float)width_ / (float)height_, 0.1f, 1000.0f);
 }
 
 Renderer::~Renderer()
 {
+	delete camera_;
 	delete[] zbuffer_;
 	delete[] pixels_;
 	delete quadShader_;
@@ -93,7 +91,7 @@ void Renderer::clear(int color)
 
 	for (uint i = 0; i < numPixels_; i++)
 	{
-		zbuffer_[i] = std::numeric_limits<float>::max();
+		zbuffer_[i] = 0.0f;
 	}
 }
 
@@ -167,7 +165,7 @@ void Renderer::drawTriangle(Triangle triangle, int color)
 
 void Renderer::drawVertexTriangle(VertexTriangle triangle)
 {
-	glm::vec2 dimensions(width_, height_);
+	const glm::vec2 dimensions(width_, height_);
 
 	for (byte i = 0; i < 3; i++)
 	{
@@ -182,6 +180,10 @@ void Renderer::drawVertexTriangle(VertexTriangle triangle)
 		triangle.v[i].p.x = triangle.v[i].p.x * dimensions.x * 0.5f + dimensions.x * 0.5f;
 		triangle.v[i].p.y = triangle.v[i].p.y * dimensions.y * 0.5f + dimensions.y * 0.5f;
 	}
+
+	glm::vec3 normal = triangle.normal();
+	if (normal.z < 0.0f)
+		return;
 
 	float xmin = glm::min(triangle.v[0].p.x, triangle.v[1].p.x);
 	xmin = glm::min(xmin, triangle.v[2].p.x);
@@ -212,7 +214,7 @@ void Renderer::drawVertexTriangle(VertexTriangle triangle)
 			if (triangle.pointIntersects(p))
 			{
 				Vertex v = triangle.getAt(glm::vec3(p, 0.0f));
-				if (v.p.z > zbuffer_[x + y * width_])
+				if (v.p.z < zbuffer_[x + y * width_] || v.p.z < camera_->near_)
 					continue;
 
 				v.c *= 255.0f;
@@ -220,7 +222,6 @@ void Renderer::drawVertexTriangle(VertexTriangle triangle)
 				byte g = (byte)v.c.g;
 				byte b = (byte)v.c.b;
 				byte a = (byte)v.c.a;
-
 				int c = (a << 24) | (b << 16) | (g << 8) | r;
 
 				pixels_[x + y * width_] = c;
@@ -265,14 +266,12 @@ void Renderer::render()
 {
 	updateTexture();
 
+	camera_->update();
+
 	clear(0);
 
-	glm::mat4 proj = glm::perspective(glm::radians(fov_), (float)width_ / (float)height_, near_, far_);
-	//glm::vec3 camPos = glm::vec3(glm::sin(glm::radians(TIME * 90.0f)) * 5.0f, 0.0f, glm::cos(glm::radians(TIME * 90.0f)) * 5.0f);
-	glm::vec3 camPos(0, 0, 3);
-	glm::mat4 view = glm::lookAt(camPos, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 	glm::mat4 model = glm::mat4(1.0f);
-	glm::mat4 mvp = proj * view * model;
+	glm::mat4 mvp = camera_->proj_ * camera_->view_ * model;
 
 	//VertexTriangle t;
 	//t.p0 = { mvp * glm::vec4(-1, -1, 0, 1), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f) };
@@ -282,9 +281,9 @@ void Renderer::render()
 	//drawVertexTriangle(t);
 
 	model = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f));
-	model = glm::rotate(model, glm::radians(TIME * 90.0f), glm::vec3(0, 1, 1));
-	mvp = proj * view * model;
-	
+	model = glm::rotate(model, glm::radians(45.0f), glm::vec3(0, 1, 1));
+	mvp = camera_->proj_ * camera_->view_ * model;
+
 	Vertex vertexBuffer[] = {
 		{ mvp * glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
 		{ mvp * glm::vec4(-1.0f, -1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
