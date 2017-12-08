@@ -173,49 +173,34 @@ void Renderer::drawTriangle(Triangle triangle, int color)
 
 void Renderer::drawVertexTriangle(VertexTriangle triangle)
 {
-	if (triangle.p0.p.x == 0.0f)
-		triangle.p0.p.x = 0.001f;
-	if (triangle.p0.p.y == 0.0f)
-		triangle.p0.p.y = 0.001f;
-
-	if (triangle.p1.p.x == 0.0f)
-		triangle.p1.p.x = 0.001f;
-	if (triangle.p1.p.y == 0.0f)
-		triangle.p1.p.y = 0.001f;
-
-	if (triangle.p2.p.x == 0.0f)
-		triangle.p2.p.x = 0.001f;
-	if (triangle.p2.p.y == 0.0f)
-		triangle.p2.p.y = 0.001f;
-
-	triangle.p0.p.x /= triangle.p0.p.w;
-	triangle.p0.p.y /= triangle.p0.p.w;
-	triangle.p1.p.x /= triangle.p1.p.w;
-	triangle.p1.p.y /= triangle.p1.p.w;
-	triangle.p2.p.x /= triangle.p2.p.w;
-	triangle.p2.p.y /= triangle.p2.p.w;
-
-
 	glm::vec2 dimensions(width_, height_);
-	triangle.p0.p.x = triangle.p0.p.x * dimensions.x * 0.5f + dimensions.x * 0.5f;
-	triangle.p0.p.y = triangle.p0.p.y * dimensions.y * 0.5f + dimensions.y * 0.5f;
-	triangle.p1.p.x = triangle.p1.p.x * dimensions.x * 0.5f + dimensions.x * 0.5f;
-	triangle.p1.p.y = triangle.p1.p.y * dimensions.y * 0.5f + dimensions.y * 0.5f;
-	triangle.p2.p.x = triangle.p2.p.x * dimensions.x * 0.5f + dimensions.x * 0.5f;
-	triangle.p2.p.y = triangle.p2.p.y * dimensions.y * 0.5f + dimensions.y * 0.5f;
 
-	float xmin = glm::min(triangle.p0.p.x, triangle.p1.p.x);
-	xmin = glm::min(xmin, triangle.p2.p.x);
-	float xmax = glm::max(triangle.p0.p.x, triangle.p1.p.x);
-	xmax = glm::max(xmax, triangle.p2.p.x);
+	for (byte i = 0; i < 3; i++)
+	{
+		if (triangle.v[i].p.x == 0.0f)
+			triangle.v[i].p.x = 0.001f;
+		if (triangle.v[i].p.y == 0.0f)
+			triangle.v[i].p.y = 0.001f;
+
+		triangle.v[i].p.x /= triangle.v[i].p.w;
+		triangle.v[i].p.y /= triangle.v[i].p.w;
+
+		triangle.v[i].p.x = triangle.v[i].p.x * dimensions.x * 0.5f + dimensions.x * 0.5f;
+		triangle.v[i].p.y = triangle.v[i].p.y * dimensions.y * 0.5f + dimensions.y * 0.5f;
+	}
+
+	float xmin = glm::min(triangle.v[0].p.x, triangle.v[1].p.x);
+	xmin = glm::min(xmin, triangle.v[2].p.x);
+	float xmax = glm::max(triangle.v[0].p.x, triangle.v[1].p.x);
+	xmax = glm::max(xmax, triangle.v[2].p.x);
 
 	xmin = glm::max(xmin, 0.0f);
 	xmax = glm::min(xmax, (float)width_);
 
-	float ymin = glm::min(triangle.p0.p.y, triangle.p1.p.y);
-	ymin = glm::min(ymin, triangle.p2.p.y);
-	float ymax = glm::max(triangle.p0.p.y, triangle.p1.p.y);
-	ymax = glm::max(ymax, triangle.p2.p.y);
+	float ymin = glm::min(triangle.v[0].p.y, triangle.v[1].p.y);
+	ymin = glm::min(ymin, triangle.v[2].p.y);
+	float ymax = glm::max(triangle.v[0].p.y, triangle.v[1].p.y);
+	ymax = glm::max(ymax, triangle.v[2].p.y);
 
 	ymin = glm::max(ymin, 0.0f);
 	ymax = glm::min(ymax, (float)height_);
@@ -259,9 +244,9 @@ void Renderer::drawVertexBuffer(Vertex* buffer, uint numVertices)
 	for (uint i = 0; i < numVertices; i += 3)
 	{
 		VertexTriangle t;
-		t.p0 = buffer[i];
-		t.p1 = buffer[i + 1];
-		t.p2 = buffer[i + 2];
+		t.v[0] = buffer[i];
+		t.v[1] = buffer[i + 1];
+		t.v[2] = buffer[i + 2];
 
 		drawVertexTriangle(t);
 	}

@@ -50,24 +50,22 @@ struct Vertex
 
 struct VertexTriangle
 {
-	Vertex p0;
-	Vertex p1;
-	Vertex p2;
+	Vertex v[3];
 
 	bool pointIntersects(glm::vec2 p)
 	{
 		bool b1, b2, b3;
-		b1 = s(p, p0.p, p1.p) < 0.0f;
-		b2 = s(p, p1.p, p2.p) < 0.0f;
-		b3 = s(p, p2.p, p0.p) < 0.0f;
+		b1 = s(p, v[0].p, v[1].p) < 0.0f;
+		b2 = s(p, v[1].p, v[2].p) < 0.0f;
+		b3 = s(p, v[2].p, v[0].p) < 0.0f;
 		return ((b1 == b2) && (b2 == b3));
 	}
 
 	Vertex getAt(glm::vec3 p)
 	{
-		Triangle t0 = { p, p1.p, p2.p };
-		Triangle t1 = { p, p0.p, p2.p };
-		Triangle t2 = { p, p1.p, p0.p };
+		Triangle t0 = { p, v[1].p, v[2].p };
+		Triangle t1 = { p, v[0].p, v[2].p };
+		Triangle t2 = { p, v[1].p, v[0].p };
 
 		float a0 = t0.area();
 		float a1 = t1.area();
@@ -79,8 +77,8 @@ struct VertexTriangle
 		float f2 = a2 / ta;
 
 		Vertex r;
-		r.p = p0.p * f0 + p1.p * f1 + p2.p * f2;
-		r.c = p0.c * f0 + p1.c * f1 + p2.c * f2;
+		r.p = v[0].p * f0 + v[1].p * f1 + v[2].p * f2;
+		r.c = v[0].c * f0 + v[1].c * f1 + v[2].c * f2;
 		return r;
 	}
 
