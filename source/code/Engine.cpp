@@ -7,7 +7,7 @@ Engine::Engine()
 void Engine::init()
 {
 	logger_ = newp Logger();
-	window_ = newp Window("Minecraft clone", 800, 800);
+	window_ = newp Window("CPURenderer", 800, 800, false, true);
 	clock_ = newp Clock();
 	renderer_ = newp Renderer();
 
@@ -29,6 +29,14 @@ bool Engine::update()
 	window_->pollEvents();
 	clock_->update();
 	renderer_->render();
+
+	static float timer = 0.0f;
+	timer += DELTA_TIME;
+	if (timer >= 1.0f)
+	{
+		timer -= 1.0f;
+		window_->setTitle("FPS: " + std::to_string(1.0f / DELTA_TIME));
+	}
 
 	window_->swapBuffers();
 	return !window_->shouldClose();

@@ -124,3 +124,8 @@ bool Window::shouldClose()
 {
 	return glfwWindowShouldClose(window_);
 }
+
+void Window::setTitle(const std::string& title)
+{
+	glfwSetWindowTitle(window_, title.c_str());
+}

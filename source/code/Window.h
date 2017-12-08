@@ -19,6 +19,11 @@ public:
 	void pollEvents();
 	void swapBuffers();
 	bool shouldClose();
+
+	int getWidth() const { return width_; }
+	int getHeight() const { return height_; }
+
+	void setTitle(const std::string& title);
 private:
 	void createWindow();
 	void destroyWindow();
