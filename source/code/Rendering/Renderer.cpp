@@ -20,7 +20,7 @@ Renderer::Renderer()
 
 	near_ = 0.1f;
 	far_ = 1000.0f;
-	fov_ = 45.0f;
+	fov_ = 60.0f;
 
 	// TEMP
 	for (uint i = 0; i <numPixels_; i++)
@@ -36,6 +36,7 @@ Renderer::Renderer()
 
 Renderer::~Renderer()
 {
+	delete[] zbuffer_;
 	delete[] pixels_;
 	delete quadShader_;
 }
@@ -275,7 +276,7 @@ void Renderer::render()
 
 	glm::mat4 proj = glm::perspective(glm::radians(fov_), (float)width_ / (float)height_, near_, far_);
 	//glm::vec3 camPos = glm::vec3(glm::sin(glm::radians(TIME * 90.0f)) * 5.0f, 0.0f, glm::cos(glm::radians(TIME * 90.0f)) * 5.0f);
-	glm::vec3 camPos(0, 0, 5);
+	glm::vec3 camPos(0, 0, 3);
 	glm::mat4 view = glm::lookAt(camPos, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 	glm::mat4 model = glm::mat4(1.0f);
 	glm::mat4 mvp = proj * view * model;

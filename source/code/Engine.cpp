@@ -19,6 +19,7 @@ Engine::~Engine()
 	logger_->writeToFile("log.txt");
 
 	delete renderer_;
+	delete clock_;
 	delete window_;
 	delete logger_;
 }
