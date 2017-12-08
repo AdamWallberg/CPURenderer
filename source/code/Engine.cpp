@@ -7,7 +7,7 @@ Engine::Engine()
 void Engine::init()
 {
 	logger_ = newp Logger();
-	window_ = newp Window("CPURenderer", 800, 800, false, true);
+	window_ = newp Window("CPURenderer", 800, 800, false, false);
 	clock_ = newp Clock();
 	renderer_ = newp Renderer();
 

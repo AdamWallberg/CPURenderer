@@ -9,7 +9,9 @@
 Renderer::Renderer()
 {
 	width_ = ENGINE->window_->getWidth() / 3;
+	//width_ = 64;
 	height_ = ENGINE->window_->getHeight() / 3;
+	//height_ = width_;
 	numPixels_ = width_ * height_;
 	pixels_ = newp uint[width_ * height_];
 	memset(pixels_, 255, sizeof(uint) * numPixels_);
@@ -218,20 +220,20 @@ void Renderer::drawVertexTriangle(VertexTriangle triangle)
 	ymin = glm::max(ymin, 0.0f);
 	ymax = glm::min(ymax, (float)height_);
 
-	for (float y = ymin; y < ymax; y++)
+	for (int y = ymin; y < ymax; y++)
 	{
-		if ((int)y < 0 || (int)y >= (int)height_)
+		if (y < 0 || y >= (int)height_)
 			continue;
-		for (float x = xmin; x < xmax; x++)
+		for (int x = xmin; x < xmax; x++)
 		{
-			if ((int)x < 0 || (int)x >= (int)width_)
+			if (x < 0 || x >= (int)width_)
 				continue;
 
 			glm::vec2 p(x, y);
 			if (triangle.pointIntersects(p))
 			{
 				Vertex v = triangle.getAt(glm::vec3(p, 0.0f));
-				if (v.p.z > zbuffer_[(int)x + (int)y * width_])
+				if (v.p.z > zbuffer_[x + y * width_])
 					continue;
 
 				v.c *= 255.0f;
@@ -287,27 +289,76 @@ void Renderer::render()
 	clear(0);
 
 	glm::mat4 proj = glm::perspective(glm::radians(fov_), (float)width_ / (float)height_, near_, far_);
-	glm::vec3 camPos = glm::vec3(glm::sin(glm::radians(TIME * 90.0f)) * 5.0f, 0.0f, glm::cos(glm::radians(TIME * 90.0f)) * 5.0f);
-	//glm::vec3 camPos(0, 0, TIME);
+	//glm::vec3 camPos = glm::vec3(glm::sin(glm::radians(TIME * 90.0f)) * 5.0f, 0.0f, glm::cos(glm::radians(TIME * 90.0f)) * 5.0f);
+	glm::vec3 camPos(0, 0, 5);
 	glm::mat4 view = glm::lookAt(camPos, glm::vec3(0, 0, 0), glm::vec3(0, 1, 0));
 	glm::mat4 model = glm::mat4(1.0f);
 	glm::mat4 mvp = proj * view * model;
 
-	glm::vec4 test = mvp * glm::vec4();
+	//VertexTriangle t;
+	//t.p0 = { mvp * glm::vec4(-1, -1, 0, 1), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f) };
+	//t.p1 = { mvp * glm::vec4(1, -1, 0, 1), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) };
+	//t.p2 = { mvp * glm::vec4(-1, 1, 0, 1), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f) };
+	//
+	//drawVertexTriangle(t);
 
-	VertexTriangle t;
-	t.p0 = { mvp * glm::vec4(-1, -1, 0, 1), glm::vec4(1.0f, 0.0f, 0.0f, 1.0f) };
-	t.p1 = { mvp * glm::vec4(1, -1, 0, 1), glm::vec4(0.0f, 1.0f, 0.0f, 1.0f) };
-	t.p2 = { mvp * glm::vec4(-1, 1, 0, 1), glm::vec4(0.0f, 0.0f, 1.0f, 1.0f) };
-
-	drawVertexTriangle(t);
-
-	model = glm::rotate(model, 45.0f, glm::vec3(0, 1, 0));
+	model = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f));
+	model = glm::rotate(model, glm::radians(TIME * 90.0f), glm::vec3(0, 1, 1));
 	mvp = proj * view * model;
-	t.p0 = { mvp * glm::vec4(-1, -1, 0, 1), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) };
-	t.p1 = { mvp * glm::vec4(1, -1, 0, 1), glm::vec4(0.0f, 1.0f, 1.0f, 1.0f) };
-	t.p2 = { mvp * glm::vec4(-1, 1, 0, 1), glm::vec4(1.0f, 0.0f, 1.0f, 1.0f) };
-	drawVertexTriangle(t);
+	
+	Vertex vertexBuffer[] = {
+		{ mvp * glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(-1.0f, -1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(1.0f, 1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(1.0f, -1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(1.0f, 1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(1.0f, -1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(-1.0f, -1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(-1.0f, -1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(1.0f, -1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(1.0f, 1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(1.0f, -1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(1.0f, 1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) },
+		{ mvp * glm::vec4(1.0f, -1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f) }
+	};
+
+	srand(1);
+	for (int i = 0; i < 36; i++)
+	{
+		Vertex& v = vertexBuffer[i];
+		uint c = rand();
+
+		float r = (c >> 32) & 255;
+		float g = (c >> 16) & 255;
+		float b = (c >> 8) & 255;
+
+		v.c = glm::vec4(r / 255, g / 255, b / 255, 1.0f);
+	}
+
+	drawVertexBuffer(vertexBuffer, 36);
 
 	quadShader_->bind();
 
