@@ -9,6 +9,7 @@ int main()
 #endif
 
 	Engine* engine = Engine::createInstance();
+	engine->init();
 
 	while (engine->update());
 
