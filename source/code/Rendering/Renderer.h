@@ -18,8 +18,8 @@ public:
 	void drawRect(Rect rect, int color);
 	void drawCircle(Circle circle, int color);
 	void drawTriangle(Triangle triangle, int color);
-	void drawVertexTriangle(VertexTriangle triangle);
-	void drawVertexBuffer(Vertex* buffer, uint numVertices);
+	void drawVertexTriangle(VertexTriangle triangle, glm::mat4 model);
+	void drawVertexBuffer(Vertex* buffer, uint numVertices, glm::mat4 model);
 private:
 	void createTexture();
 	void setupQuad();
