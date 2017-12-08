@@ -14,19 +14,11 @@ Renderer::Renderer()
 	//height_ = width_;
 	numPixels_ = width_ * height_;
 	pixels_ = newp uint[width_ * height_];
-	memset(pixels_, 255, sizeof(uint) * numPixels_);
 	zbuffer_ = newp float[width_ * height_];
-	memset(zbuffer_, 0.0f, sizeof(float) * numPixels_);
 
 	near_ = 0.1f;
 	far_ = 1000.0f;
 	fov_ = 60.0f;
-
-	// TEMP
-	for (uint i = 0; i <numPixels_; i++)
-	{
-		pixels_[i] = 0x00000000;
-	}
 
 	createTexture();
 	setupQuad();
@@ -87,9 +79,10 @@ void Renderer::setupQuad()
 
 void Renderer::setPixel(int x, int y, int color)
 {
-	// TODO:
-	x = glm::clamp(x, 0, (int)width_);
-	y = glm::clamp(y, 0, (int)height_);
+	if (x < 0 || x >= (int)width_)
+		return;
+	if (y < 0 || y >= (int)height_)
+		return;
 
 	pixels_[x + y * width_] = color;
 }
@@ -206,11 +199,11 @@ void Renderer::drawVertexTriangle(VertexTriangle triangle)
 	ymin = glm::max(ymin, 0.0f);
 	ymax = glm::min(ymax, (float)height_);
 
-	for (int y = ymin; y < ymax; y++)
+	for (int y = (int)ymin; y < (int)ymax + 1; y++)
 	{
 		if (y < 0 || y >= (int)height_)
 			continue;
-		for (int x = xmin; x < xmax; x++)
+		for (int x = (int)xmin; x < (int)xmax + 1; x++)
 		{
 			if (x < 0 || x >= (int)width_)
 				continue;
@@ -230,8 +223,8 @@ void Renderer::drawVertexTriangle(VertexTriangle triangle)
 
 				int c = (a << 24) | (b << 16) | (g << 8) | r;
 
-				pixels_[(int)x + (int)y * width_] = c;
-				zbuffer_[(int)x + (int)y * width_] = v.p.z;
+				pixels_[x + y * width_] = c;
+				zbuffer_[x + y * width_] = v.p.z;
 			}
 		}
 	}
@@ -337,9 +330,9 @@ void Renderer::render()
 		Vertex& v = vertexBuffer[i];
 		uint c = rand();
 
-		float r = (c >> 32) & 255;
-		float g = (c >> 16) & 255;
-		float b = (c >> 8) & 255;
+		float r = (c >> 16) & 255;
+		float g = (c >> 8) & 255;
+		float b = (c) & 255;
 
 		v.c = glm::vec4(r / 255, g / 255, b / 255, 1.0f);
 	}
