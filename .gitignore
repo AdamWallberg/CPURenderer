@@ -1,0 +1,16 @@
+# Include premake executable
+!source/utils/premake/premake5.exe
+
+# Generated files
+*.sln
+*.vcxproj
+*.db
+*.opendb
+*.filters
+source/.vs
+source/build
+*.ulb
+*.tlog
+source/utils/deps/
+*.7z
+game/*.txt
