@@ -8,10 +8,10 @@
 
 Renderer::Renderer()
 {
-	width_ = ENGINE->window_->getWidth();
-	width_ = width_ / 4;
-	height_ = ENGINE->window_->getHeight();
-	height_ = width_;
+	width_ = ENGINE->window_->getWidth() / 4;
+	//width_ = width_ / 8;
+	height_ = ENGINE->window_->getHeight() / 4;
+	//height_ = width_;
 	numPixels_ = width_ * height_;
 	pixels_ = newp uint[width_ * height_];
 	zbuffer_ = newp float[width_ * height_];
@@ -170,6 +170,9 @@ void Renderer::drawVertexTriangle(VertexTriangle triangle, glm::mat4 model)
 {
 	const glm::vec2 dimensions(width_, height_);
 
+	glm::vec3 worldNormal = model * glm::vec4(triangle.normal(), 0);
+	worldNormal = glm::normalize(worldNormal);
+
 	for (byte i = 0; i < 3; i++)
 	{
 		triangle.v[i].p = camera_->proj_ * camera_->view_ * model * triangle.v[i].p;
@@ -225,14 +228,29 @@ void Renderer::drawVertexTriangle(VertexTriangle triangle, glm::mat4 model)
 				if (v.p.z < zbuffer_[x + y * width_] || v.p.z < camera_->near_)
 					continue;
 
-				v.c *= 255.0f;
-				byte r = (byte)v.c.r;
-				byte g = (byte)v.c.g;
-				byte b = (byte)v.c.b;
-				byte a = (byte)v.c.a;
-				int c = (a << 24) | (b << 16) | (g << 8) | r;
+				static const glm::vec3 sunDir = glm::normalize(glm::vec3(-1, -1, 1));
+				float brightness = glm::clamp(glm::dot(-worldNormal, sunDir), 0.2f, 1.0f);
 
-				c = testTexture_->getTexelAt(v.uv);
+				//v.c *= 255.0f;
+				//byte r = (byte)(v.c.r);
+				//byte g = (byte)(v.c.g);
+				//byte b = (byte)(v.c.b);
+				//byte a = (byte)(v.c.a);
+				//
+				//int c = (a << 24) | (b << 16) | (g << 8) | r;
+
+				int c = testTexture_->getTexelAt(v.uv);
+
+				float a = (float)((c >> 24) & 0xff);
+				float r = (float)((c >> 16) & 0xff);
+				float g = (float)((c >> 8) & 0xff);
+				float b = (float)((c) & 0xff);
+
+				r *= brightness;
+				g *= brightness;
+				b *= brightness;
+
+				c = ((byte)a << 24) | ((byte)b << 16) | ((byte)g << 8) | (byte)r;
 
 				pixels_[x + y * width_] = c;
 				zbuffer_[x + y * width_] = v.p.z;
@@ -295,7 +313,7 @@ void Renderer::render()
 	//drawVertexBuffer(quadBuffer, 6, model);
 
 	model = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f));
-	model = glm::rotate(model, glm::radians(45.0f), glm::vec3(0, 1, 1));
+	model = glm::rotate(model, glm::radians(TIME * 90.0f), glm::vec3(0, 1, 1));
 
 	Vertex vertexBuffer[] = {
 		{ glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(0, 1) },
