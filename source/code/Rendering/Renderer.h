@@ -5,6 +5,7 @@
 
 class Shader;
 class Camera;
+class Texture;
 
 class Renderer
 {
@@ -37,4 +38,6 @@ private:
 	uint screenQuad_;
 
 	Camera* camera_;
+
+	Texture* testTexture_;
 };

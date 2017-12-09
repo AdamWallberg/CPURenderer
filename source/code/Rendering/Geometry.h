@@ -31,8 +31,7 @@ struct Triangle
 
 	float area()
 	{
-		float area = ((p1.x - p0.x) * (p2.y - p0.y) - (p2.x - p0.x) * (p1.y - p0.y)) * 0.5f;
-		return glm::abs(area);
+		return glm::abs(p0.x * (p1.y - p2.y) + p1.x * (p2.y - p0.y) + p2.x * (p0.y - p1.y)) * 0.5f;
 	}
 
 private:
@@ -46,6 +45,7 @@ struct Vertex
 {
 	glm::vec4 p;
 	glm::vec4 c;
+	glm::vec2 uv;
 };
 
 struct VertexTriangle
@@ -61,15 +61,15 @@ struct VertexTriangle
 		return ((b1 == b2) && (b2 == b3));
 	}
 
-	Vertex getAt(glm::vec3 p)
+	Vertex getAt(glm::vec2 p)
 	{
-		Triangle t0 = { p, v[1].p, v[2].p };
-		Triangle t1 = { p, v[0].p, v[2].p };
-		Triangle t2 = { p, v[1].p, v[0].p };
+		Triangle t0 = { glm::vec4(p, 0, 1), v[2].p, v[1].p };
+		Triangle t1 = { glm::vec4(p, 0, 1), v[0].p, v[2].p };
+		Triangle t2 = { glm::vec4(p, 0, 1), v[1].p, v[0].p };
 
-		float a0 = t0.area();
-		float a1 = t1.area();
-		float a2 = t2.area();
+		float a0 = t0.area() / v[0].p.w;
+		float a1 = t1.area() / v[1].p.w;
+		float a2 = t2.area() / v[2].p.w;
 		float ta = a0 + a1 + a2;
 
 		float f0 = a0 / ta;
@@ -79,6 +79,7 @@ struct VertexTriangle
 		Vertex r;
 		r.p = v[0].p * f0 + v[1].p * f1 + v[2].p * f2;
 		r.c = v[0].c * f0 + v[1].c * f1 + v[2].c * f2;
+		r.uv = v[0].uv * f0 + v[1].uv * f1 + v[2].uv * f2;
 		return r;
 	}
 

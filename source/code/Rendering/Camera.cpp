@@ -8,7 +8,7 @@ Camera::Camera(float fov, float aspect, float near, float far)
 	near_ = near;
 	far_ = far;
 	proj_ = glm::perspective(glm::radians(fov), aspect, near, far);
-	pos_ = glm::vec3(0, 0, 0);
+	pos_ = glm::vec3(0, 0, -5);
 	rot_ = glm::vec3(0.0f, 0.0f, 0.0f);
 }
 
@@ -16,9 +16,14 @@ void Camera::update()
 {
 	// Camera rotation
 	if (glfwGetKey(ENGINE->window_->getWindow(), GLFW_KEY_LEFT))
-		rot_.y += 90.0f * DELTA_TIME;
-	if (glfwGetKey(ENGINE->window_->getWindow(), GLFW_KEY_RIGHT))
 		rot_.y -= 90.0f * DELTA_TIME;
+	if (glfwGetKey(ENGINE->window_->getWindow(), GLFW_KEY_RIGHT))
+		rot_.y += 90.0f * DELTA_TIME;
+
+	if (glfwGetKey(ENGINE->window_->getWindow(), GLFW_KEY_UP))
+		rot_.x += 90.0f * DELTA_TIME;
+	if (glfwGetKey(ENGINE->window_->getWindow(), GLFW_KEY_DOWN))
+		rot_.x -= 90.0f * DELTA_TIME;
 
 	// Setup at vector
 	glm::vec3 at(
@@ -26,7 +31,7 @@ void Camera::update()
 		glm::sin(glm::radians(rot_.x)),
 		glm::cos(glm::radians(rot_.y)) * glm::cos(glm::radians(rot_.x)));
 	// TODO: Proper
-	glm::vec3 right = glm::cross(at, glm::vec3(0, 1, 0));
+	glm::vec3 right = glm::cross(glm::vec3(0, 1, 0), at);
 
 	// Movement
 	if (glfwGetKey(ENGINE->window_->getWindow(), GLFW_KEY_W))
