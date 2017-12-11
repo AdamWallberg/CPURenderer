@@ -10,9 +10,9 @@
 Renderer::Renderer()
 	: exitThreads_(false)
 {
-	width_ = ENGINE->window_->getWidth() / 2;
+	width_ = ENGINE->window_->getWidth();
 	//width_ = 512;
-	height_ = ENGINE->window_->getHeight() / 2;
+	height_ = ENGINE->window_->getHeight();
 	//height_ = width_;
 	numPixels_ = width_ * height_;
 	pixels_ = newp uint[width_ * height_];
@@ -25,7 +25,7 @@ Renderer::Renderer()
 
 	camera_ = newp Camera(60.0f, (float)width_ / (float)height_, 0.1f, 300.0f);
 
-	testMesh_ = newp Mesh("cube.obj");
+	testMesh_ = newp Mesh("suzanne.obj");
 	testTexture_ = newp Texture("test.bmp");
 
 	for (int i = 0; i < NUM_THREADS; i++)
@@ -244,11 +244,6 @@ void Renderer::drawVertexTriangle(VertexTriangle triangle, glm::mat4 model, bool
 		triangle.v[2].p.y >= height_)
 		return;
 
-	if (triangle.v[0].normal.z > 0.0f &&
-		triangle.v[1].normal.z > 0.0f &&
-		triangle.v[2].normal.z > 0.0f)
-		return;
-
 	glm::vec3 normal = triangle.normal();
 	if (normal.z > 0.0f)
 		return;
@@ -336,10 +331,10 @@ void Renderer::render()
 
 	clear(0);
 
-	for (int i = 0; i < 20; i++)
+	for (int i = 0; i < 3; i++)
 	{
 		glm::mat4 model = glm::mat4(1.0f);
-		model = glm::translate(model, glm::vec3(-1.0f + i * 0.5f, 0, 0));
+		model = glm::translate(model, glm::vec3(i * 2.f, 0, 0));
 		model = glm::rotate(model, glm::radians(TIME * 90.0f), glm::vec3(0, 1, 0));
 		model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
 		drawVertexBuffer(testMesh_->getVertexPointer(), testMesh_->getNumVertices(), model, testMesh_->hasUV());
