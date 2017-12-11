@@ -28,6 +28,8 @@ Renderer::Renderer()
 
 Renderer::~Renderer()
 {
+	delete testTexture_;
+
 	delete camera_;
 	delete[] zbuffer_;
 	delete[] pixels_;
@@ -229,8 +231,9 @@ void Renderer::drawVertexTriangle(VertexTriangle triangle, glm::mat4 model)
 					continue;
 
 				static const glm::vec3 sunDir = glm::normalize(glm::vec3(-1, -1, 1));
-				float brightness = glm::clamp(glm::dot(-worldNormal, sunDir), 0.2f, 1.0f);
-
+				float brightness = glm::clamp(glm::dot(-worldNormal, sunDir), 0.0f, 1.0f);
+				brightness *= brightness;
+				brightness = glm::clamp(brightness, 0.1f, 1.0f);
 				//v.c *= 255.0f;
 				//byte r = (byte)(v.c.r);
 				//byte g = (byte)(v.c.g);
@@ -313,7 +316,7 @@ void Renderer::render()
 	//drawVertexBuffer(quadBuffer, 6, model);
 
 	model = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f));
-	model = glm::rotate(model, glm::radians(TIME * 90.0f), glm::vec3(0, 1, 1));
+	model = glm::rotate(model, glm::radians(TIME * 90.0f), glm::vec3(0, 1, 0));
 
 	Vertex vertexBuffer[] = {
 		{ glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(0, 1) },

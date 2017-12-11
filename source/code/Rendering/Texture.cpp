@@ -38,10 +38,17 @@ Texture::Texture(std::string name)
 	{
 		data_[i] = (255 << 24) | (data[i * 3] << 16) | (data[i * 3 + 1] << 8) | (data[i * 3 + 2]);
 	}
+
+	delete[] data;
 }
 
 Texture::Texture(int width, int height, int color /* = 0xffffffff */)
 {
+}
+
+Texture::~Texture()
+{
+	delete[] data_;
 }
 
 uint Texture::getTexelAt(glm::vec2 pos)
