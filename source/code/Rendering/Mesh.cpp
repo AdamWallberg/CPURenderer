@@ -87,7 +87,7 @@ void Mesh::loadFromObj(std::string path)
 		}
 	}
 
-	numVertices_ = vertexIndices.size() * 3;
+	numVertices_ = vertexIndices.size();
 	vertices_ = newp Vertex[numVertices_];
 
 	for (uint i = 0; i < vertexIndices.size(); i++)
