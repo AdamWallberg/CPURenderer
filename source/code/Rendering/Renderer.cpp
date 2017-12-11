@@ -196,6 +196,11 @@ void Renderer::drawVertexTriangle(VertexTriangle triangle, glm::mat4 model, bool
 		triangle.v[i].p.y = triangle.v[i].p.y * dimensions.y * 0.5f + dimensions.y * 0.5f;
 	}
 
+	if (triangle.v[0].p.z < 0.0f &&
+		triangle.v[1].p.z < 0.0f &&
+		triangle.v[1].p.z < 0.0f)
+		return;
+
 	if (triangle.v[0].normal.z > 0.0f &&
 		triangle.v[1].normal.z > 0.0f &&
 		triangle.v[2].normal.z > 0.0f)
@@ -221,6 +226,11 @@ void Renderer::drawVertexTriangle(VertexTriangle triangle, glm::mat4 model, bool
 	ymin = glm::max(ymin, 0.0f);
 	ymax = glm::min(ymax, (float)height_);
 
+	static const glm::vec3 sunDir = glm::normalize(glm::vec3(-1, -1, 1));
+	float brightness = glm::clamp(glm::dot(-worldNormal, sunDir), 0.0f, 1.0f);
+	brightness *= brightness;
+	brightness = glm::clamp(brightness, 0.1f, 1.0f);
+
 	for (int y = glm::clamp((int)ymin, 0, (int)height_); y < glm::clamp((int)ymax, 0, (int)height_) + 1; y++)
 	{
 		if (y < 0 || y >= (int)height_)
@@ -230,44 +240,29 @@ void Renderer::drawVertexTriangle(VertexTriangle triangle, glm::mat4 model, bool
 			if (x < 0 || x >= (int)width_)
 				continue;
 
-			glm::vec2 p(x, y);
+			const glm::vec2 p(x, y);
 			if (triangle.pointIntersects(p))
 			{
 				Vertex v = triangle.getAt(p);
 
-				if (v.p.z > zbuffer_[x + y * width_] || v.p.z < camera_->near_)
+				if (v.p.z < camera_->near_ ||
+					v.p.x > camera_->far_ ||
+					v.p.z > zbuffer_[x + y * width_])
 					continue;
 
-				static const glm::vec3 sunDir = glm::normalize(glm::vec3(-1, -1, 1));
-				float brightness = glm::clamp(glm::dot(-worldNormal, sunDir), 0.0f, 1.0f);
-				brightness *= brightness;
-				brightness = glm::clamp(brightness, 0.1f, 1.0f);
-				//v.c *= 255.0f;
-				//byte r = (byte)(v.c.r);
-				//byte g = (byte)(v.c.g);
-				//byte b = (byte)(v.c.b);
-				//byte a = (byte)(v.c.a);
-				//
-				//int c = (a << 24) | (b << 16) | (g << 8) | r;
-
-				int c;
+				glm::vec4 c;
 				if (hasUV)
 					c = testTexture_->getTexelAt(v.uv);
 				else
-					c = ((byte)v.c.a << 24) | ((byte)v.c.b << 16) | ((byte)v.c.g << 8) | (byte)v.c.r;
+					c = v.c;
 
-				float a = (float)((c >> 24) & 0xff);
-				float r = (float)((c >> 16) & 0xff);
-				float g = (float)((c >> 8) & 0xff);
-				float b = (float)((c) & 0xff);
+				c.r *= brightness;
+				c.g *= brightness;
+				c.b *= brightness;
 
-				r *= brightness;
-				g *= brightness;
-				b *= brightness;
+				const int col = ((byte)c.a << 24) | ((byte)c.b << 16) | ((byte)c.g << 8) | (byte)c.r;
 
-				c = ((byte)a << 24) | ((byte)b << 16) | ((byte)g << 8) | (byte)r;
-
-				pixels_[x + y * width_] = c;
+				pixels_[x + y * width_] = col;
 				zbuffer_[x + y * width_] = v.p.z;
 			}
 		}
@@ -313,76 +308,14 @@ void Renderer::render()
 
 	clear(0);
 
-	glm::mat4 model = glm::mat4(1.0f);
-	//model = glm::translate(glm::vec3(0, 0, TIME));
-
-	Vertex quadBuffer[] = {
-		{ glm::vec4(-1, 1, 0, 1), glm::vec4(1, 1, 1, 1),	glm::vec2(0, 1) },
-		{ glm::vec4(-1, -1, 0, 1), glm::vec4(1, 1, 1, 1),	glm::vec2(0, 0) },
-		{ glm::vec4(1, -1, 0, 1), glm::vec4(1, 1, 1, 1),	glm::vec2(1, 0) },
-		{ glm::vec4(-1, 1, 0, 1), glm::vec4(1, 1, 1, 1),	glm::vec2(0, 1) },
-		{ glm::vec4(1, -1, 0, 1), glm::vec4(1, 1, 1, 1),	glm::vec2(1, 0) },
-		{ glm::vec4(1, 1, 0, 1), glm::vec4(1, 1, 1, 1),		glm::vec2(1, 1) },
-	};
-
-	//drawVertexBuffer(quadBuffer, 6, model);
-
-	model = glm::scale(glm::mat4(1.0f), glm::vec3(0.5f, 0.5f, 0.5f));
-	model = glm::rotate(model, glm::radians(TIME * 90.0f), glm::vec3(0, 1, 0));
-
-	Vertex vertexBuffer[] = {
-		{ glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(0, 1) },
-		{ glm::vec4(-1.0f, -1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(0, 0) },
-		{ glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(1, 0) },
-		{ glm::vec4(1.0f, 1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(0, 1) },
-		{ glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(1, 0) },
-		{ glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(1, 1) },
-		{ glm::vec4(1.0f, -1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(0, 1) },
-		{ glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(0, 0) },
-		{ glm::vec4(1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(1, 0) },
-		{ glm::vec4(1.0f, 1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(0, 1) },
-		{ glm::vec4(1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(1, 0) },
-		{ glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(1, 1) },
-		{ glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(0, 1) },
-		{ glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(0, 0) },
-		{ glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(1, 0) },
-		{ glm::vec4(1.0f, -1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(0, 1) },
-		{ glm::vec4(-1.0f, -1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(1, 0) },
-		{ glm::vec4(-1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(1, 1) },
-		{ glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(0, 1) },
-		{ glm::vec4(-1.0f, -1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(0, 0) },
-		{ glm::vec4(1.0f, -1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(1, 0) },
-		{ glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(0, 1) },
-		{ glm::vec4(1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(1, 0) },
-		{ glm::vec4(1.0f, 1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(1, 1) },
-		{ glm::vec4(1.0f, -1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(0, 1) },
-		{ glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(0, 0) },
-		{ glm::vec4(1.0f, -1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(1, 0) },
-		{ glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(0, 1) },
-		{ glm::vec4(1.0f, 1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(1, 0) },
-		{ glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(1, 1) },
-		{ glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(0, 1) },
-		{ glm::vec4(-1.0f, 1.0f, -1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(0, 0) },
-		{ glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(1, 0) },
-		{ glm::vec4(1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(0, 1) },
-		{ glm::vec4(-1.0f, 1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(1, 0) },
-		{ glm::vec4(1.0f, -1.0f, 1.0f, 1.0f), glm::vec4(1.0f, 1.0f, 0.0f, 1.0f), glm::vec2(1, 1) },
-	};
-
-	srand(1);
-	for (int i = 0; i < 36; i++)
+	for (int i = 0; i < 5; i++)
 	{
-		Vertex& v = vertexBuffer[i];
-		uint c = rand();
-
-		float r = (c >> 16) & 255;
-		float g = (c >> 8) & 255;
-		float b = (c) & 255;
-
-		v.c = glm::vec4(r / 255, g / 255, b / 255, 1.0f);
+		glm::mat4 model = glm::mat4(1.0f);
+		model = glm::translate(model, glm::vec3(-1.0f + i * 0.5f, 0, 0));
+		model = glm::rotate(model, glm::radians(TIME * 90.0f), glm::vec3(0, 1, 0));
+		model = glm::scale(model, glm::vec3(0.5f, 0.5f, 0.5f));
+		drawVertexBuffer(testMesh_->getVertexPointer(), testMesh_->getNumVertices(), model, testMesh_->hasUV());
 	}
-
-	drawVertexBuffer(testMesh_->getVertexPointer(), testMesh_->getNumVertices(), model, testMesh_->hasUV());
 
 	quadShader_->bind();
 

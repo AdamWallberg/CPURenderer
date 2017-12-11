@@ -33,10 +33,11 @@ Texture::Texture(std::string name)
 	fread(data, 1, imageSize, file);
 	fclose(file);
 
-	data_ = newp uint[width_ * height_];
+	data_ = newp glm::vec4[width_ * height_];
 	for (int i = 0; i < width_ * height_; i++)
 	{
-		data_[i] = (255 << 24) | (data[i * 3] << 16) | (data[i * 3 + 1] << 8) | (data[i * 3 + 2]);
+		//data_[i] = (255 << 24) | (data[i * 3] << 16) | (data[i * 3 + 1] << 8) | (data[i * 3 + 2]);
+		data_[i] = glm::vec4(data[i * 3], data[i * 3 + 1], data[i * 3 + 2], 255);
 	}
 
 	delete[] data;
@@ -51,7 +52,7 @@ Texture::~Texture()
 	delete[] data_;
 }
 
-uint Texture::getTexelAt(glm::vec2 pos)
+glm::vec4 Texture::getTexelAt(glm::vec2 pos) const
 {
 	// TODO: Wrapping
 	pos.x *= width_;

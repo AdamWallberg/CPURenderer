@@ -10,9 +10,9 @@ public:
 	Texture(int width, int height, int color = 0xffffffff);
 	~Texture();
 
-	uint getTexelAt(glm::vec2 pos);
+	glm::vec4 getTexelAt(glm::vec2 pos) const;
 private:
-	uint* data_;
+	glm::vec4* data_;
 	int width_;
 	int height_;
 };
