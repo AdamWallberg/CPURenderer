@@ -1,5 +1,6 @@
 # Include premake executable
 !source/utils/premake/premake5.exe
+!game/data/**
 
 # Generated files
 *.sln
