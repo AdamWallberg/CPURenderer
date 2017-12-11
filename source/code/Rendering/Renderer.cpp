@@ -8,11 +8,12 @@
 #include "Mesh.h"
 
 Renderer::Renderer()
+	: exitThreads_(false)
 {
 	width_ = ENGINE->window_->getWidth() / 2;
-	width_ = 512;
+	//width_ = 512;
 	height_ = ENGINE->window_->getHeight() / 2;
-	height_ = width_;
+	//height_ = width_;
 	numPixels_ = width_ * height_;
 	pixels_ = newp uint[width_ * height_];
 	zbuffer_ = newp float[width_ * height_];
@@ -24,12 +25,23 @@ Renderer::Renderer()
 
 	camera_ = newp Camera(60.0f, (float)width_ / (float)height_, 0.1f, 1000.0f);
 
-	testMesh_ = newp Mesh("cube.obj");
+	testMesh_ = newp Mesh("suzanne.obj");
 	testTexture_ = newp Texture("test.bmp");
+
+	for (int i = 0; i < NUM_THREADS; i++)
+	{
+		threads_[i] = newp std::thread(threadWorkerFunction, this, i);
+	}
 }
 
 Renderer::~Renderer()
 {
+	exitThreads_ = true;
+	for (int i = 0; i < 4; i++)
+	{
+		threads_[i]->join();
+		delete threads_[i];
+	}
 	delete testTexture_;
 	delete testMesh_;
 	delete camera_;
@@ -96,7 +108,7 @@ void Renderer::clear(int color)
 {
 	memset(pixels_, color, sizeof(uint) * numPixels_);
 
-	for (uint i = 0; i < numPixels_; i++)
+	for (unsigned long long i = 0; i < numPixels_; i++)
 	{
 		zbuffer_[i] = std::numeric_limits<float>::max();
 	}
@@ -231,42 +243,41 @@ void Renderer::drawVertexTriangle(VertexTriangle triangle, glm::mat4 model, bool
 	brightness *= brightness;
 	brightness = glm::clamp(brightness, 0.1f, 1.0f);
 
-	for (int y = glm::clamp((int)ymin, 0, (int)height_); y < glm::clamp((int)ymax, 0, (int)height_) + 1; y++)
+	/*for (int i = 0; i < 1; i++)
 	{
-		if (y < 0 || y >= (int)height_)
-			continue;
-		for (int x = glm::clamp((int)xmin, 0, (int)width_); x < glm::clamp((int)xmax, 0, (int)width_) + 1; x++)
+		std::lock_guard<std::mutex> guard(renderTasksMutex_[i]);
+
+		RenderTask t;
+		t.xmin = xmin;
+		t.xmax = xmax;
+		t.ymin = ymin;
+		t.ymax = ymax;
+		t.t = triangle;
+		t.brightness = brightness;
+		renderTasks_[i].push_back(t);
+	}*/
+
+	int minTasks = INT_MAX;
+	int taskList = 0;
+	for (int i = 0; i < NUM_THREADS; i++)
+	{
+		std::lock_guard<std::mutex> guard(renderTasksMutex_[i]);
+		if (renderTasks_[i].size() < minTasks)
 		{
-			if (x < 0 || x >= (int)width_)
-				continue;
-
-			const glm::vec2 p(x, y);
-			if (triangle.pointIntersects(p))
-			{
-				Vertex v = triangle.getAt(p);
-
-				if (v.p.z < camera_->near_ ||
-					v.p.x > camera_->far_ ||
-					v.p.z > zbuffer_[x + y * width_])
-					continue;
-
-				glm::vec4 c;
-				if (hasUV)
-					c = testTexture_->getTexelAt(v.uv);
-				else
-					c = v.c;
-
-				c.r *= brightness;
-				c.g *= brightness;
-				c.b *= brightness;
-
-				const int col = ((byte)c.a << 24) | ((byte)c.b << 16) | ((byte)c.g << 8) | (byte)c.r;
-
-				pixels_[x + y * width_] = col;
-				zbuffer_[x + y * width_] = v.p.z;
-			}
+			minTasks = renderTasks_[i].size();
+			taskList = i;
 		}
 	}
+
+	std::lock_guard<std::mutex> guard(renderTasksMutex_[taskList]);
+	RenderTask t;
+	t.xmin = xmin;
+	t.xmax = xmax;
+	t.ymin = ymin;
+	t.ymax = ymax;
+	t.t = triangle;
+	t.brightness = brightness;
+	renderTasks_[taskList].push_back(t);
 }
 
 void Renderer::drawVertexBuffer(Vertex* buffer, uint numVertices, glm::mat4 model, bool hasUV)
@@ -283,10 +294,14 @@ void Renderer::drawVertexBuffer(Vertex* buffer, uint numVertices, glm::mat4 mode
 
 		drawVertexTriangle(t, model, hasUV);
 	}
+
+	
 }
 
 void Renderer::updateTexture()
 {
+	std::lock_guard<std::mutex> guard(bufferMutex_);
+
 	glBindTexture(GL_TEXTURE_2D, texture_);
 	glTexSubImage2D(
 		GL_TEXTURE_2D, 
@@ -302,13 +317,12 @@ void Renderer::updateTexture()
 
 void Renderer::render()
 {
-	updateTexture();
 
 	camera_->update();
 
 	clear(0);
 
-	for (int i = 0; i < 5; i++)
+	for (int i = 0; i < 1; i++)
 	{
 		glm::mat4 model = glm::mat4(1.0f);
 		model = glm::translate(model, glm::vec3(-1.0f + i * 0.5f, 0, 0));
@@ -317,6 +331,20 @@ void Renderer::render()
 		drawVertexBuffer(testMesh_->getVertexPointer(), testMesh_->getNumVertices(), model, testMesh_->hasUV());
 	}
 
+	bool wait = true;
+	while (wait)
+	{
+		wait = false;
+		for (int i = 0; i < NUM_THREADS; i++)
+		{
+			std::lock_guard<std::mutex> guard(renderTasksMutex_[i]);
+			if (renderTasks_[i].size() > 0)
+				wait = true;
+		}
+	}
+
+	updateTexture();
+
 	quadShader_->bind();
 
 	glActiveTexture(GL_TEXTURE0);
@@ -324,4 +352,69 @@ void Renderer::render()
 
 	glBindVertexArray(screenQuad_);
 	glDrawArrays(GL_TRIANGLES, 0, 6);
+}
+
+void Renderer::threadWorkerFunction(Renderer* r, int thread)
+{
+	bool hasTask = false;
+	RenderTask t;
+
+	while (true)
+	{
+		if (r->exitThreads_)
+			return;
+
+		if (!hasTask)
+		{
+			std::lock_guard<std::mutex> guard(r->renderTasksMutex_[thread]);
+			int numTasks = r->renderTasks_[thread].size();
+			if (numTasks <= 0)
+				continue;
+
+			t = r->renderTasks_[thread][0];
+			hasTask = true;
+		}
+		else
+		{
+			for (int y = glm::clamp((int)t.ymin, 0, (int)r->height_); y < glm::clamp((int)t.ymax, 0, (int)r->height_) + 1; y++)
+			{
+				if (y < 0 || y >= r->height_)
+					continue;
+
+				for (int x = glm::clamp((int)t.xmin, 0, (int)r->width_); x < glm::clamp((int)t.xmax, 0, (int)r->width_) + 1; x++)
+				{
+					if (x < 0 || x >= r->width_)
+						continue;
+
+					const glm::vec2 p(x, y);
+					if (t.t.pointIntersects(p))
+					{
+						Vertex v = t.t.getAt(p);
+						std::lock_guard<std::mutex> guard(r->bufferMutex_);
+
+						if (v.p.z < r->camera_->near_ ||
+							v.p.x > r->camera_->far_ ||
+							v.p.z > r->zbuffer_[x + y * r->width_])
+							continue;
+
+						glm::vec4 c;
+						c = r->testTexture_->getTexelAt(v.uv);
+
+						c.r *= t.brightness;
+						c.g *= t.brightness;
+						c.b *= t.brightness;
+
+						int col = ((byte)c.a << 24) | ((byte)c.b << 16) | ((byte)c.g << 8) | (byte)c.r;
+						//col += thread * 100000;
+
+						r->pixels_[x + y * r->width_] = col;
+						r->zbuffer_[x + y * r->width_] = v.p.z;
+					}
+				}
+			}
+			hasTask = false;
+			std::lock_guard<std::mutex> guard(r->renderTasksMutex_[thread]);
+			r->renderTasks_[thread].erase(r->renderTasks_[thread].begin());
+		}
+	}
 }

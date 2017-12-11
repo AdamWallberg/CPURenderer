@@ -2,6 +2,9 @@
 
 #include "Types.h"
 #include "Geometry.h"
+#include <thread>
+#include <vector>
+#include <mutex>
 
 class Shader;
 class Camera;
@@ -42,4 +45,24 @@ private:
 
 	Mesh* testMesh_;
 	Texture* testTexture_;
+
+	// Threading
+	struct RenderTask
+	{
+		int xmin;
+		int xmax;
+		int ymin;
+		int ymax;
+		VertexTriangle t;
+		float brightness;
+	};
+
+	bool exitThreads_;
+	static const int NUM_THREADS = 4;
+	std::thread* threads_[NUM_THREADS];
+	std::vector<RenderTask> renderTasks_[NUM_THREADS];
+	std::mutex renderTasksMutex_[NUM_THREADS];
+	std::mutex bufferMutex_;
+
+	static void threadWorkerFunction(Renderer* renderer, int zone);
 };
