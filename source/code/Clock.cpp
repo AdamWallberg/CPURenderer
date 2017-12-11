@@ -19,9 +19,9 @@ void Clock::update()
 
 	float newTime = FLOAT_S(glfwGetTime());
 	deltaTime = newTime - lastTime;
-	if (deltaTime >= 0.1f)
+	if (deltaTime >= 0.5f)
 	{
-		deltaTime = 0.1f;
+		deltaTime = 0.5f;
 	}
 
 	time += deltaTime;
