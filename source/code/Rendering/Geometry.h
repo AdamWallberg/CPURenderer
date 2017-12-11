@@ -20,7 +20,7 @@ struct Triangle
 	glm::vec3 p1;
 	glm::vec3 p2;
 
-	inline bool pointIntersects(glm::vec2 p) const
+	inline bool pointIntersects(const glm::vec2& p) const
 	{
 		bool b1, b2, b3;
 		b1 = s(p, p0, p1) < 0.0f;
@@ -35,7 +35,7 @@ struct Triangle
 	}
 
 private:
-	inline float s(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3) const
+	inline float s(const glm::vec2& p1, const glm::vec2& p2, const glm::vec2& p3) const
 	{
 		return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
 	}
@@ -62,7 +62,7 @@ struct VertexTriangle
 		return ((b1 == b2) && (b2 == b3));
 	}
 
-	inline Vertex getAt(glm::vec2 p) const
+	inline Vertex getAt(const glm::vec2& p) const
 	{
 		const Triangle t0 = { glm::vec3(p, 0), v[2].p, v[1].p };
 		const Triangle t1 = { glm::vec3(p, 0), v[0].p, v[2].p };
@@ -89,12 +89,12 @@ struct VertexTriangle
 	inline glm::vec3 normal() const
 	{
 		return glm::normalize(glm::cross(
-			glm::normalize(glm::vec3(v[1].p - v[0].p)),
-			glm::normalize(glm::vec3(v[2].p - v[0].p))));
+			glm::vec3(v[1].p - v[0].p),
+			glm::vec3(v[2].p - v[0].p)));
 	}
 
 private:
-	float s(glm::vec2 p1, glm::vec2 p2, glm::vec2 p3) const
+	float s(const glm::vec2& p1, const glm::vec2& p2, const glm::vec2& p3) const
 	{
 		return (p1.x - p3.x) * (p2.y - p3.y) - (p2.x - p3.x) * (p1.y - p3.y);
 	}
