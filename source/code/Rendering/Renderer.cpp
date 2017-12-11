@@ -23,14 +23,15 @@ Renderer::Renderer()
 
 	quadShader_ = newp Shader("quad");
 
-	camera_ = newp Camera(60.0f, (float)width_ / (float)height_, 0.1f, 1000.0f);
+	camera_ = newp Camera(60.0f, (float)width_ / (float)height_, 0.1f, 300.0f);
 
-	testMesh_ = newp Mesh("suzanne.obj");
+	testMesh_ = newp Mesh("cube.obj");
 	testTexture_ = newp Texture("test.bmp");
 
 	for (int i = 0; i < NUM_THREADS; i++)
 	{
 		threads_[i] = newp std::thread(threadWorkerFunction, this, i);
+		renderTasks_[i].reserve(1024);
 	}
 }
 
@@ -208,9 +209,39 @@ void Renderer::drawVertexTriangle(VertexTriangle triangle, glm::mat4 model, bool
 		triangle.v[i].p.y = triangle.v[i].p.y * dimensions.y * 0.5f + dimensions.y * 0.5f;
 	}
 
-	if (triangle.v[0].p.z < 0.0f &&
-		triangle.v[1].p.z < 0.0f &&
-		triangle.v[1].p.z < 0.0f)
+	if (triangle.v[0].p.w < camera_->near_ &&
+		triangle.v[1].p.w < camera_->near_ &&
+		triangle.v[2].p.w < camera_->near_)
+		return;
+
+	if (triangle.v[0].p.z < camera_->near_ &&
+		triangle.v[1].p.z < camera_->near_ &&
+		triangle.v[2].p.z < camera_->near_)
+		return;
+
+	if (triangle.v[0].p.z > camera_->far_ &&
+		triangle.v[1].p.z > camera_->far_ &&
+		triangle.v[2].p.z > camera_->far_)
+		return;
+
+	if (triangle.v[0].p.x < 0.0f &&
+		triangle.v[1].p.x < 0.0f &&
+		triangle.v[2].p.x < 0.0f)
+		return;
+
+	if (triangle.v[0].p.x >= width_ &&
+		triangle.v[1].p.x >= width_ &&
+		triangle.v[2].p.x >= width_)
+		return;
+
+	if (triangle.v[0].p.y < 0.0f &&
+		triangle.v[1].p.y < 0.0f &&
+		triangle.v[2].p.y < 0.0f)
+		return;
+
+	if (triangle.v[0].p.y >= height_ &&
+		triangle.v[1].p.y >= height_ &&
+		triangle.v[2].p.y >= height_)
 		return;
 
 	if (triangle.v[0].normal.z > 0.0f &&
@@ -219,8 +250,8 @@ void Renderer::drawVertexTriangle(VertexTriangle triangle, glm::mat4 model, bool
 		return;
 
 	glm::vec3 normal = triangle.normal();
-	//if (normal.z > 0.0f)
-	//	return;
+	if (normal.z > 0.0f)
+		return;
 
 	float xmin = glm::min(triangle.v[0].p.x, triangle.v[1].p.x);
 	xmin = glm::min(xmin, triangle.v[2].p.x);
@@ -243,25 +274,10 @@ void Renderer::drawVertexTriangle(VertexTriangle triangle, glm::mat4 model, bool
 	brightness *= brightness;
 	brightness = glm::clamp(brightness, 0.1f, 1.0f);
 
-	/*for (int i = 0; i < 1; i++)
-	{
-		std::lock_guard<std::mutex> guard(renderTasksMutex_[i]);
-
-		RenderTask t;
-		t.xmin = xmin;
-		t.xmax = xmax;
-		t.ymin = ymin;
-		t.ymax = ymax;
-		t.t = triangle;
-		t.brightness = brightness;
-		renderTasks_[i].push_back(t);
-	}*/
-
 	int minTasks = INT_MAX;
 	int taskList = 0;
 	for (int i = 0; i < NUM_THREADS; i++)
 	{
-		std::lock_guard<std::mutex> guard(renderTasksMutex_[i]);
 		if (renderTasks_[i].size() < minTasks)
 		{
 			minTasks = renderTasks_[i].size();
@@ -294,8 +310,6 @@ void Renderer::drawVertexBuffer(Vertex* buffer, uint numVertices, glm::mat4 mode
 
 		drawVertexTriangle(t, model, hasUV);
 	}
-
-	
 }
 
 void Renderer::updateTexture()
@@ -322,7 +336,7 @@ void Renderer::render()
 
 	clear(0);
 
-	for (int i = 0; i < 1; i++)
+	for (int i = 0; i < 20; i++)
 	{
 		glm::mat4 model = glm::mat4(1.0f);
 		model = glm::translate(model, glm::vec3(-1.0f + i * 0.5f, 0, 0));
@@ -390,10 +404,10 @@ void Renderer::threadWorkerFunction(Renderer* r, int thread)
 					if (t.t.pointIntersects(p))
 					{
 						Vertex v = t.t.getAt(p);
-						std::lock_guard<std::mutex> guard(r->bufferMutex_);
 
+						std::lock_guard<std::mutex> bufferGuard(r->bufferMutex_);
 						if (v.p.z < r->camera_->near_ ||
-							v.p.x > r->camera_->far_ ||
+							v.p.z > r->camera_->far_ ||
 							v.p.z > r->zbuffer_[x + y * r->width_])
 							continue;
 
