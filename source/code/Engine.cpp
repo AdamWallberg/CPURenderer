@@ -36,7 +36,7 @@ bool Engine::update()
 	if (timer >= 1.0f)
 	{
 		timer -= 1.0f;
-		window_->setTitle("FPS: " + std::to_string(1.0f / DELTA_TIME));
+		window_->setTitle("MS: " + std::to_string(DELTA_TIME * 1000));
 	}
 
 	window_->swapBuffers();
