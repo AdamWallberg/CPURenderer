@@ -5,13 +5,14 @@
 #include "Engine.h"
 #include "Camera.h"
 #include "Texture.h"
+#include "Mesh.h"
 
 Renderer::Renderer()
 {
-	width_ = ENGINE->window_->getWidth() / 4;
-	//width_ = width_ / 8;
-	height_ = ENGINE->window_->getHeight() / 4;
-	//height_ = width_;
+	width_ = ENGINE->window_->getWidth() / 2;
+	width_ = 512;
+	height_ = ENGINE->window_->getHeight() / 2;
+	height_ = width_;
 	numPixels_ = width_ * height_;
 	pixels_ = newp uint[width_ * height_];
 	zbuffer_ = newp float[width_ * height_];
@@ -23,13 +24,14 @@ Renderer::Renderer()
 
 	camera_ = newp Camera(60.0f, (float)width_ / (float)height_, 0.1f, 1000.0f);
 
+	testMesh_ = newp Mesh("cube.obj");
 	testTexture_ = newp Texture("test.bmp");
 }
 
 Renderer::~Renderer()
 {
 	delete testTexture_;
-
+	delete testMesh_;
 	delete camera_;
 	delete[] zbuffer_;
 	delete[] pixels_;
@@ -96,7 +98,7 @@ void Renderer::clear(int color)
 
 	for (uint i = 0; i < numPixels_; i++)
 	{
-		zbuffer_[i] = 0.0f;
+		zbuffer_[i] = std::numeric_limits<float>::max();
 	}
 }
 
@@ -168,11 +170,12 @@ void Renderer::drawTriangle(Triangle triangle, int color)
 	}
 }
 
-void Renderer::drawVertexTriangle(VertexTriangle triangle, glm::mat4 model)
+void Renderer::drawVertexTriangle(VertexTriangle triangle, glm::mat4 model, bool hasUV)
 {
 	const glm::vec2 dimensions(width_, height_);
 
 	glm::vec3 worldNormal = model * glm::vec4(triangle.normal(), 0);
+	//glm::vec3 worldNormal = model * glm::vec4(triangle.v[0].normal, 0);
 	worldNormal = glm::normalize(worldNormal);
 
 	for (byte i = 0; i < 3; i++)
@@ -189,14 +192,18 @@ void Renderer::drawVertexTriangle(VertexTriangle triangle, glm::mat4 model)
 
 		triangle.v[i].p.x *= -1.0f;
 
-
 		triangle.v[i].p.x = triangle.v[i].p.x * dimensions.x * 0.5f + dimensions.x * 0.5f;
 		triangle.v[i].p.y = triangle.v[i].p.y * dimensions.y * 0.5f + dimensions.y * 0.5f;
 	}
 
-	glm::vec3 normal = triangle.normal();
-	if (normal.z > 0.0f)
+	if (triangle.v[0].normal.z > 0.0f &&
+		triangle.v[1].normal.z > 0.0f &&
+		triangle.v[2].normal.z > 0.0f)
 		return;
+
+	glm::vec3 normal = triangle.normal();
+	//if (normal.z > 0.0f)
+	//	return;
 
 	float xmin = glm::min(triangle.v[0].p.x, triangle.v[1].p.x);
 	xmin = glm::min(xmin, triangle.v[2].p.x);
@@ -214,11 +221,11 @@ void Renderer::drawVertexTriangle(VertexTriangle triangle, glm::mat4 model)
 	ymin = glm::max(ymin, 0.0f);
 	ymax = glm::min(ymax, (float)height_);
 
-	for (int y = (int)ymin; y < (int)ymax + 1; y++)
+	for (int y = glm::clamp((int)ymin, 0, (int)height_); y < glm::clamp((int)ymax, 0, (int)height_) + 1; y++)
 	{
 		if (y < 0 || y >= (int)height_)
 			continue;
-		for (int x = (int)xmin; x < (int)xmax + 1; x++)
+		for (int x = glm::clamp((int)xmin, 0, (int)width_); x < glm::clamp((int)xmax, 0, (int)width_) + 1; x++)
 		{
 			if (x < 0 || x >= (int)width_)
 				continue;
@@ -227,7 +234,8 @@ void Renderer::drawVertexTriangle(VertexTriangle triangle, glm::mat4 model)
 			if (triangle.pointIntersects(p))
 			{
 				Vertex v = triangle.getAt(p);
-				if (v.p.z < zbuffer_[x + y * width_] || v.p.z < camera_->near_)
+
+				if (v.p.z > zbuffer_[x + y * width_] || v.p.z < camera_->near_)
 					continue;
 
 				static const glm::vec3 sunDir = glm::normalize(glm::vec3(-1, -1, 1));
@@ -242,7 +250,11 @@ void Renderer::drawVertexTriangle(VertexTriangle triangle, glm::mat4 model)
 				//
 				//int c = (a << 24) | (b << 16) | (g << 8) | r;
 
-				int c = testTexture_->getTexelAt(v.uv);
+				int c;
+				if (hasUV)
+					c = testTexture_->getTexelAt(v.uv);
+				else
+					c = ((byte)v.c.a << 24) | ((byte)v.c.b << 16) | ((byte)v.c.g << 8) | (byte)v.c.r;
 
 				float a = (float)((c >> 24) & 0xff);
 				float r = (float)((c >> 16) & 0xff);
@@ -262,7 +274,7 @@ void Renderer::drawVertexTriangle(VertexTriangle triangle, glm::mat4 model)
 	}
 }
 
-void Renderer::drawVertexBuffer(Vertex* buffer, uint numVertices, glm::mat4 model)
+void Renderer::drawVertexBuffer(Vertex* buffer, uint numVertices, glm::mat4 model, bool hasUV)
 {
 	if (numVertices % 3 != 0)
 		assert(false);
@@ -274,7 +286,7 @@ void Renderer::drawVertexBuffer(Vertex* buffer, uint numVertices, glm::mat4 mode
 		t.v[1] = buffer[i + 1];
 		t.v[2] = buffer[i + 2];
 
-		drawVertexTriangle(t, model);
+		drawVertexTriangle(t, model, hasUV);
 	}
 }
 
@@ -370,7 +382,7 @@ void Renderer::render()
 		v.c = glm::vec4(r / 255, g / 255, b / 255, 1.0f);
 	}
 
-	drawVertexBuffer(vertexBuffer, 36, model);
+	drawVertexBuffer(testMesh_->getVertexPointer(), testMesh_->getNumVertices(), model, testMesh_->hasUV());
 
 	quadShader_->bind();
 

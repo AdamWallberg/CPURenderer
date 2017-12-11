@@ -46,6 +46,7 @@ struct Vertex
 	glm::vec4 p;
 	glm::vec4 c;
 	glm::vec2 uv;
+	glm::vec3 normal;
 };
 
 struct VertexTriangle
@@ -80,6 +81,7 @@ struct VertexTriangle
 		r.p = v[0].p * f0 + v[1].p * f1 + v[2].p * f2;
 		r.c = v[0].c * f0 + v[1].c * f1 + v[2].c * f2;
 		r.uv = v[0].uv * f0 + v[1].uv * f1 + v[2].uv * f2;
+		r.normal = v[0].normal * f0 + v[1].normal * f1 + v[2].normal * f2;
 		return r;
 	}
 

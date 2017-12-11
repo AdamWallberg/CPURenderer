@@ -6,6 +6,7 @@
 class Shader;
 class Camera;
 class Texture;
+class Mesh;
 
 class Renderer
 {
@@ -19,8 +20,8 @@ public:
 	void drawRect(Rect rect, int color);
 	void drawCircle(Circle circle, int color);
 	void drawTriangle(Triangle triangle, int color);
-	void drawVertexTriangle(VertexTriangle triangle, glm::mat4 model);
-	void drawVertexBuffer(Vertex* buffer, uint numVertices, glm::mat4 model);
+	void drawVertexTriangle(VertexTriangle triangle, glm::mat4 model, bool hasUV = true);
+	void drawVertexBuffer(Vertex* buffer, uint numVertices, glm::mat4 model, bool hasUV = true);
 private:
 	void createTexture();
 	void setupQuad();
@@ -39,5 +40,6 @@ private:
 
 	Camera* camera_;
 
+	Mesh* testMesh_;
 	Texture* testTexture_;
 };

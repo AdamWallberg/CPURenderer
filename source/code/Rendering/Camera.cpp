@@ -8,7 +8,7 @@ Camera::Camera(float fov, float aspect, float near, float far)
 	near_ = near;
 	far_ = far;
 	proj_ = glm::perspective(glm::radians(fov), aspect, near, far);
-	pos_ = glm::vec3(0, 0, -5);
+	pos_ = glm::vec3(0, 1, -2);
 	rot_ = glm::vec3(0.0f, 0.0f, 0.0f);
 }
 
