@@ -9,5 +9,5 @@ This project features the following:
 - Wonky multi-threading
 - OBJ-parsing
 
-PS. The program still uses the GPU to draw the final image onto the context, and for that I use GLFW. 
+PS. The program still uses the GPU to draw the final image onto the context, and for that I use GLFW. <br>
 PSS. The code is somewhat of a clusterfuck since the development has been very experimental.
